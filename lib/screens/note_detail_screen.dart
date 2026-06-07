@@ -241,12 +241,15 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
                                   widget.note.fields[key]!,
                                   style: RambleType.body(scheme.ink),
                                 ),
-                                if (key != widget.note.type.fieldKeys.last &&
-                                    widget.note.fields[widget.note.type.fieldKeys
-                                            .lastIndexOf(key) +
-                                        1]?.isNotEmpty ==
-                                        true)
-                                  const SizedBox(height: RambleSpace.s3),
+                                Builder(builder: (_) {
+                                  final idx = widget.note.type.fieldKeys.indexOf(key);
+                                  final nextIdx = idx + 1;
+                                  final nextHasValue = nextIdx < widget.note.type.fieldKeys.length &&
+                                      widget.note.fields[widget.note.type.fieldKeys[nextIdx]]?.isNotEmpty == true;
+                                  return (key != widget.note.type.fieldKeys.last && nextHasValue)
+                                      ? const SizedBox(height: RambleSpace.s3)
+                                      : const SizedBox.shrink();
+                                }),
                               ],
                             ),
                       ],

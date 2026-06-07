@@ -270,44 +270,52 @@ class _HomeScreenState extends State<HomeScreen> {
     final scheme = context.ramble;
     final chipColor = Color(colorValue);
 
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: RambleSpace.s3,
-        vertical: RambleSpace.s2,
-      ),
-      decoration: BoxDecoration(
-        color: scheme.surface,
-        border: Border.all(
-          color: chipColor,
-          width: 2,
+    return GestureDetector(
+      onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('$name — coming soon'),
+          duration: const Duration(seconds: 1),
         ),
-        borderRadius: BorderRadius.circular(RambleGeo.cardRadius),
-        boxShadow: [
-          BoxShadow(
-            offset: const Offset(4, 4),
-            blurRadius: 0,
-            color: scheme.shadow,
-          ),
-        ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            name,
-            style: GoogleFonts.dmSans(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: scheme.ink,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: RambleSpace.s3,
+          vertical: RambleSpace.s2,
+        ),
+        decoration: BoxDecoration(
+          color: scheme.surface,
+          border: Border.all(
+            color: chipColor,
+            width: 2,
+          ),
+          borderRadius: BorderRadius.circular(RambleGeo.cardRadius),
+          boxShadow: [
+            BoxShadow(
+              offset: const Offset(4, 4),
+              blurRadius: 0,
+              color: scheme.shadow,
             ),
-          ),
-          const SizedBox(height: RambleSpace.s1),
-          Text(
-            '$noteCount notes',
-            style: RambleType.caption(scheme.inkSoft),
-          ),
-        ],
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              name,
+              style: GoogleFonts.dmSans(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: scheme.ink,
+              ),
+            ),
+            const SizedBox(height: RambleSpace.s1),
+            Text(
+              '$noteCount notes',
+              style: RambleType.caption(scheme.inkSoft),
+            ),
+          ],
+        ),
       ),
     );
   }

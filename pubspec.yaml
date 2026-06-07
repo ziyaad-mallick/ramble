@@ -21,6 +21,7 @@ dependencies:
   google_fonts: ^6.2.1
   collection: ^1.18.0
   flutter_animate: ^4.5.0
+  record: ^7.0.0
 
 dev_dependencies:
   flutter_test:
