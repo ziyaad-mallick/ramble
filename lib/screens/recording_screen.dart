@@ -87,7 +87,6 @@ class _RecordingScreenState extends State<RecordingScreen> {
       durationSeconds: _elapsed,
       projects: projects,
       history: history,
-      apiKey: SettingsService.instance.apiKey,
       mikoEnabled: SettingsService.instance.mikoEnabled,
     );
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/ramble_theme.dart';
 import '../services/settings_service.dart';
+import '../services/local_llm_service.dart';
 import '../widgets/ramble_button.dart';
 import '../widgets/ramble_card.dart';
 import '../widgets/miko/miko_character.dart';
@@ -17,6 +18,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late TextEditingController _userNameController;
   late TextEditingController _apiKeyController;
 
+  bool _downloading = false;
+  int _progress = 0;
+
   @override
   void initState() {
     super.initState();
@@ -24,6 +28,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
         TextEditingController(text: SettingsService.instance.userName);
     _apiKeyController =
         TextEditingController(text: SettingsService.instance.apiKey);
+  }
+
+  Future<void> _downloadLocalBrain() async {
+    if (_downloading) return;
+    setState(() {
+      _downloading = true;
+      _progress = 0;
+    });
+    try {
+      await LocalLlmService.instance.download(
+        onProgress: (p) {
+          if (mounted) setState(() => _progress = p);
+        },
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Miko\'s local brain is ready ✓')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Download failed — check connection. ($e)')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _downloading = false);
+    }
   }
 
   @override
@@ -216,9 +248,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const SizedBox(height: RambleSpace.s5),
 
-            // Section 3: Miko's brain (LLM key)
+            // Section 3a: Miko's local brain (on-device LLM)
             Text(
-              "MIKO'S BRAIN",
+              "MIKO'S LOCAL BRAIN",
               style: RambleType.label(scheme.inkSoft),
             ),
             const SizedBox(height: RambleSpace.s2),
@@ -227,7 +259,67 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'ramble structures your thinking offline for free. add a Claude API key to wake Miko up — real summaries, the arc of your thought, contradictions across your notes, and live stats on demand. your key stays on this device.',
+                    'runs entirely on your phone — free, offline, private. structures every note: summary, the arc of your thinking, tags and basic checks. ~550MB one-time download (wifi + a modern phone recommended).',
+                    style: RambleType.caption(scheme.inkSoft),
+                  ),
+                  const SizedBox(height: RambleSpace.s3),
+                  if (_downloading) ...[
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(RambleGeo.badgeRadius),
+                      child: LinearProgressIndicator(
+                        value: _progress > 0 ? _progress / 100 : null,
+                        minHeight: 8,
+                        backgroundColor: scheme.bg,
+                        color: RambleColors.mikoPurple,
+                      ),
+                    ),
+                    const SizedBox(height: RambleSpace.s2),
+                    Text('downloading Miko… $_progress%',
+                        style: RambleType.caption(scheme.inkSoft)),
+                  ] else ...[
+                    SizedBox(
+                      width: double.infinity,
+                      child: RambleButton(
+                        label: SettingsService.instance.localModelInstalled
+                            ? 'RE-DOWNLOAD'
+                            : 'DOWNLOAD (~550MB)',
+                        kind: RambleButtonKind.primary,
+                        icon: Icons.download_rounded,
+                        onTap: _downloadLocalBrain,
+                        expand: true,
+                      ),
+                    ),
+                    const SizedBox(height: RambleSpace.s3),
+                    Center(
+                      child: Text(
+                        SettingsService.instance.localModelInstalled
+                            ? '✓ installed — Miko thinks on-device, for free'
+                            : 'not installed — using offline rule-based mode',
+                        style: RambleType.caption(
+                          SettingsService.instance.localModelInstalled
+                              ? RambleColors.bit8Green
+                              : scheme.inkSoft,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: RambleSpace.s5),
+
+            // Section 3b: Web research (optional cloud key, deep dives only)
+            Text(
+              'WEB RESEARCH (OPTIONAL)',
+              style: RambleType.label(scheme.inkSoft),
+            ),
+            const SizedBox(height: RambleSpace.s2),
+            RambleCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'a Claude API key lets "Ask Miko" pull live stats and fact-check from the web. it is NOT used for everyday notes — only when you tap Ask Miko — so it won\'t run up a bill. your key stays on this device.',
                     style: RambleType.caption(scheme.inkSoft),
                   ),
                   const SizedBox(height: RambleSpace.s3),

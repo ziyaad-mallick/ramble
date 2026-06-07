@@ -6,31 +6,29 @@ import '../models/miko_response.dart';
 import 'formatter_service.dart';
 import 'miko_service.dart';
 import 'llm_client.dart';
+import 'local_llm_service.dart';
 
-/// The thinking-partner engine. Turns a raw transcript into a structured
-/// *thinking document*: summary, the arc of the thought (where you started →
-/// points → turns → where you landed), an auto life-context tag, and — when
-/// Miko is on — interventions that support, correct, contradict, or question
-/// your thinking, plus on-demand web-researched stats.
+/// The thinking-partner engine, tiered for cost:
 ///
-/// With an API key it uses Claude (the real brain). Without one it degrades
-/// gracefully to the rule-based [FormatterService] + [MikoService] so the app
-/// still produces a clean document offline.
+///  1. **Per-note analysis** runs on Miko's *local* brain (on-device Gemma) when
+///     it's installed — free, offline, private. If it isn't installed or fails,
+///     we degrade to rule-based structuring. The cloud is NEVER used per-note,
+///     so everyday rambling can't run up an API bill.
+///  2. **Deep dives** ("Ask Miko: pull the TAM/SAM/SOM", "fact-check this") are
+///     the only paid path — they need live web data, so they hit the cloud
+///     ([LlmClient]) with web search, and only when the user explicitly asks.
 class ThinkingService {
-  /// Build a thinking document from a transcript.
+  /// Build a thinking document from a transcript. Local-first; never cloud.
   static Future<Note> analyze({
     required String transcript,
     required int durationSeconds,
     required List<Project> projects,
     required List<Note> history,
-    required String apiKey,
     required bool mikoEnabled,
   }) async {
-    final client = LlmClient(apiKey);
-    if (client.hasKey) {
+    if (LocalLlmService.instance.isInstalled) {
       try {
-        return await _llmAnalyze(
-          client: client,
+        return await _localAnalyze(
           transcript: transcript,
           durationSeconds: durationSeconds,
           projects: projects,
@@ -38,8 +36,7 @@ class ThinkingService {
           mikoEnabled: mikoEnabled,
         );
       } catch (e) {
-        debugPrint('ThinkingService: LLM failed, falling back ($e)');
-        // fall through to rule-based
+        debugPrint('ThinkingService: local analyze failed, falling back ($e)');
       }
     }
     return _ruleBased(
@@ -51,9 +48,7 @@ class ThinkingService {
     );
   }
 
-  /// Ask Miko to dig deeper — "pull TAM/SAM/SOM", "find holes in this", etc.
-  /// Uses live web search for real figures. Returns one [Insight] to append to
-  /// the document, or throws [LlmException] (caller shows the error).
+  /// Ask Miko to dig deeper — the only cloud path. Needs a key + internet.
   static Future<Insight> deepDive({
     required Note note,
     required String query,
@@ -83,71 +78,82 @@ class ThinkingService {
         source: (map['source'] as String?)?.trim() ?? '',
       );
     }
-    // Model didn't return clean JSON — keep the prose as a stat insight.
     return Insight(kind: 'stat', text: raw, source: '');
   }
 
-  // ── LLM path ────────────────────────────────────────────────────────────
+  // ── Local LLM path ────────────────────────────────────────────────────────
 
-  static Future<Note> _llmAnalyze({
-    required LlmClient client,
+  static Future<Note> _localAnalyze({
     required String transcript,
     required int durationSeconds,
     required List<Project> projects,
     required List<Note> history,
     required bool mikoEnabled,
   }) async {
+    final prompt = '${_analyzeSystem(mikoEnabled)}\n\n'
+        '${_analyzeUser(transcript, history)}';
+    final raw = await LocalLlmService.instance.complete(prompt: prompt);
+    final map = _extractJson(raw);
+    if (map == null) throw const FormatException('Local analysis: no JSON');
+    return _buildNoteFromAnalysis(
+      map: map,
+      transcript: transcript,
+      durationSeconds: durationSeconds,
+      projects: projects,
+      mikoEnabled: mikoEnabled,
+    );
+  }
+
+  static String _analyzeSystem(bool mikoEnabled) {
     final mikoBlock = mikoEnabled
-        ? 'Then act as a sharp thinking partner. In "insights", surface 1-4 of '
+        ? 'Then act as a sharp thinking partner. In "insights", surface up to 3 of '
             'the most valuable interventions. Each has a "kind": '
             '"support" (a fact/principle that backs the thinking), '
-            '"correction" (something the user got factually wrong), '
+            '"correction" (something the user likely got wrong), '
             '"contradiction" (clashes with their OWN earlier notes — see RECENT NOTES), '
             '"question" (a sharp hole worth probing), '
-            '"stat" (a concrete figure from your knowledge — add a "source" if you can). '
-            'Be honest and specific. Never invent statistics; if unsure, mark it a question. '
-            'If you have nothing genuinely useful to add, return an empty insights array.'
+            '"stat" (a concrete figure you are confident about). '
+            'Be honest; never invent statistics — if unsure, make it a question. '
+            'If you have nothing genuinely useful to add, use an empty array.'
         : 'Leave "insights" as an empty array.';
+    return 'You are Miko, the thinking partner inside Ramble. The user rambles out '
+        'loud; you turn it into a structured thinking document. '
+        'Respond with ONLY a single minified JSON object — no prose, no code fences. Schema:\n'
+        '{"title":"punchy, <=60 chars",'
+        '"context":"ONE of: University|Startup|Work|Personal|Research|Health|Finance|Creative|Other",'
+        '"type_index":0-6 (0 idea,1 task,2 meeting,3 study,4 reflection,5 research,6 feedback),'
+        '"summary":"2-3 sentence TL;DR of what they thought",'
+        '"arc":[{"kind":"start|point|turn|landing","text":"one beat of their thinking"}],'
+        '"tags":["3-6 lowercase topic tags"],'
+        '"tasks":["concrete to-dos they mentioned"],'
+        '"questions":["open questions raised"],'
+        '"insights":[{"kind":"...","text":"...","source":"optional url"}]}\n'
+        'The "arc" traces HOW their thinking moved: where they started, points '
+        'touched, any turns, where they landed. $mikoBlock';
+  }
 
-    final recent = history.take(15).where((n) => n.summary.isNotEmpty || n.title.isNotEmpty);
+  static String _analyzeUser(String transcript, List<Note> history) {
+    final recent = history
+        .take(12)
+        .where((n) => n.summary.isNotEmpty || n.title.isNotEmpty);
     final historyBlock = recent.isEmpty
         ? '(none yet)'
         : recent
             .map((n) =>
                 '- [${n.context.isEmpty ? n.type.label : n.context}] ${n.title}: ${n.summary.isEmpty ? n.keyQuote : n.summary}')
             .join('\n');
-
-    final system =
-        'You are Miko, the thinking partner inside Ramble, a voice-note app. The user '
-        'rambles out loud; you turn it into a structured thinking document. '
-        'Respond ONLY with a single JSON object — no prose, no markdown fences. Schema:\n'
-        '{\n'
-        '  "title": "punchy title, max 60 chars",\n'
-        '  "context": "ONE of: University | Startup | Work | Personal | Research | Health | Finance | Creative | Other",\n'
-        '  "type_index": 0-6 (0 idea, 1 task, 2 meeting, 3 study, 4 reflection, 5 research, 6 feedback),\n'
-        '  "summary": "2-3 sentence TL;DR of what they actually thought",\n'
-        '  "arc": [ {"kind":"start|point|turn|landing","text":"one beat of their thinking"} ],\n'
-        '  "tags": ["3-6 lowercase topic tags"],\n'
-        '  "tasks": ["any concrete to-dos they mentioned"],\n'
-        '  "questions": ["open questions they raised or you noticed"],\n'
-        '  "insights": [ {"kind":"...","text":"...","source":"optional url"} ]\n'
-        '}\n'
-        'The "arc" should trace HOW their thinking moved: where they started, the '
-        'points they touched, any turns/changes of mind, and where they landed. '
-        '$mikoBlock';
-
-    final userText = 'RECENT NOTES (for spotting contradictions/connections):\n'
+    return 'RECENT NOTES (for spotting contradictions/connections):\n'
         '$historyBlock\n\n'
         'TRANSCRIPT OF WHAT I JUST SAID:\n"$transcript"';
+  }
 
-    final raw = await client.complete(
-      system: system,
-      userText: userText,
-      maxTokens: 4096,
-    );
-    final map = _extractJson(raw);
-    if (map == null) throw const LlmException('Could not parse analysis JSON');
-
+  static Note _buildNoteFromAnalysis({
+    required Map<String, dynamic> map,
+    required String transcript,
+    required int durationSeconds,
+    required List<Project> projects,
+    required bool mikoEnabled,
+  }) {
     final type = NoteTypeX.fromIndex((map['type_index'] as num?)?.toInt() ?? 0);
     final tags = _stringList(map['tags']);
     final taskTexts = _stringList(map['tasks']);
@@ -189,7 +195,7 @@ class ThinkingService {
       tags: tags,
       items: items,
       reminders: const [],
-      confidence: 1.0,
+      confidence: 0.9,
       createdAt: DateTime.now(),
       durationSeconds: durationSeconds,
       summary: summary,
@@ -200,7 +206,7 @@ class ThinkingService {
     );
   }
 
-  // ── Rule-based fallback ───────────────────────────────────────────────────
+  // ── Rule-based fallback (no model installed) ───────────────────────────────
 
   static Future<Note> _ruleBased({
     required String transcript,
@@ -215,7 +221,6 @@ class ThinkingService {
       projects: projects,
     );
 
-    // A lightweight arc + summary from the transcript so the doc view still works.
     final sentences = transcript
         .split(RegExp(r'[.!?\n]+'))
         .map((s) => s.trim())
@@ -301,7 +306,6 @@ class ThinkingService {
     return t;
   }
 
-  /// Match the transcript against project names (longest match wins), else Inbox.
   static String _assignProject(String transcript, List<Project> projects) {
     if (projects.isEmpty) return '';
     final lower = transcript.toLowerCase();
