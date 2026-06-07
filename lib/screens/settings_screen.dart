@@ -216,9 +216,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const SizedBox(height: RambleSpace.s5),
 
-            // Section 3: Smart Formatting
+            // Section 3: Miko's brain (LLM key)
             Text(
-              'SMART FORMATTING (OPTIONAL)',
+              "MIKO'S BRAIN",
               style: RambleType.label(scheme.inkSoft),
             ),
             const SizedBox(height: RambleSpace.s2),
@@ -227,7 +227,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'ramble works fully offline with built-in formatting. add an AI key to upgrade.',
+                    'ramble structures your thinking offline for free. add a Claude API key to wake Miko up — real summaries, the arc of your thought, contradictions across your notes, and live stats on demand. your key stays on this device.',
                     style: RambleType.caption(scheme.inkSoft),
                   ),
                   const SizedBox(height: RambleSpace.s3),
@@ -281,8 +281,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Center(
                     child: Text(
                       SettingsService.instance.hasApiKey
-                          ? '✓ smart formatting enabled'
-                          : 'using offline formatting',
+                          ? '✓ Miko is awake'
+                          : 'offline mode',
                       style: RambleType.caption(
                         SettingsService.instance.hasApiKey
                             ? RambleColors.bit8Green

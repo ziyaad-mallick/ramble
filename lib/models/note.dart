@@ -104,7 +104,48 @@ class Reminder {
       );
 }
 
-/// The core note document. Persisted to Hive as JSON via [toJson]/[fromJson].
+/// One beat in the arc of a ramble — how the thinking moved.
+/// kind ∈ 'start' (where you began) | 'point' (a point you touched) |
+/// 'turn' (a pivot/change of mind) | 'landing' (where you ended up).
+class ThoughtPoint {
+  final String kind;
+  final String text;
+
+  ThoughtPoint({required this.kind, required this.text});
+
+  Map<String, dynamic> toJson() => {'kind': kind, 'text': text};
+
+  factory ThoughtPoint.fromJson(Map<String, dynamic> j) => ThoughtPoint(
+        kind: (j['kind'] as String?) ?? 'point',
+        text: (j['text'] as String?) ?? '',
+      );
+}
+
+/// Miko's intervention on your thinking — the thinking-partner layer.
+/// kind ∈ 'support' (a fact/stat that backs you up) | 'correction' (something
+/// you got wrong) | 'contradiction' (clashes with your own earlier thinking) |
+/// 'question' (a hole worth probing) | 'stat' (a figure, ideally sourced).
+/// [source] is an optional citation/URL ('' when none).
+class Insight {
+  final String kind;
+  final String text;
+  final String source;
+
+  Insight({required this.kind, required this.text, this.source = ''});
+
+  Map<String, dynamic> toJson() =>
+      {'kind': kind, 'text': text, 'source': source};
+
+  factory Insight.fromJson(Map<String, dynamic> j) => Insight(
+        kind: (j['kind'] as String?) ?? 'support',
+        text: (j['text'] as String?) ?? '',
+        source: (j['source'] as String?) ?? '',
+      );
+}
+
+/// The core thinking document. Persisted to Hive as JSON via [toJson]/[fromJson].
+/// Fields added for the thinking-partner pivot (summary, context, arc, insights,
+/// analyzed) all default empty/false so notes written before the pivot still decode.
 class Note {
   final String id;
   String title;
@@ -128,6 +169,23 @@ class Note {
   final DateTime createdAt;
   final int durationSeconds;
 
+  // ── Thinking-partner layer (S-rework) ──────────────────────────────────────
+  /// Miko's TL;DR of what you thought.
+  String summary;
+
+  /// Auto-classified life context — e.g. 'University', 'Startup', 'Personal'.
+  String context;
+
+  /// The arc of the ramble: where you started → points → turns → where you landed.
+  List<ThoughtPoint> arc;
+
+  /// Miko's interventions (supports, corrections, contradictions, questions, stats).
+  /// Only populated when Miko is enabled.
+  List<Insight> insights;
+
+  /// True once the LLM thinking pass has enriched this note (vs rule-based only).
+  bool analyzed;
+
   Note({
     required this.id,
     required this.title,
@@ -142,7 +200,13 @@ class Note {
     required this.confidence,
     required this.createdAt,
     required this.durationSeconds,
-  });
+    this.summary = '',
+    this.context = '',
+    List<ThoughtPoint>? arc,
+    List<Insight>? insights,
+    this.analyzed = false,
+  })  : arc = arc ?? [],
+        insights = insights ?? [];
 
   List<ExtractedItem> get tasks => items.where((i) => i.kind == 'task').toList();
   List<ExtractedItem> get questions =>
@@ -165,6 +229,11 @@ class Note {
         'confidence': confidence,
         'createdAt': createdAt.toIso8601String(),
         'durationSeconds': durationSeconds,
+        'summary': summary,
+        'context': context,
+        'arc': arc.map((e) => e.toJson()).toList(),
+        'insights': insights.map((e) => e.toJson()).toList(),
+        'analyzed': analyzed,
       };
 
   factory Note.fromJson(Map<String, dynamic> j) => Note(
@@ -185,5 +254,14 @@ class Note {
         confidence: (j['confidence'] as num?)?.toDouble() ?? 0.0,
         createdAt: DateTime.parse(j['createdAt'] as String),
         durationSeconds: (j['durationSeconds'] as int?) ?? 0,
+        summary: (j['summary'] as String?) ?? '',
+        context: (j['context'] as String?) ?? '',
+        arc: (j['arc'] as List? ?? [])
+            .map((e) => ThoughtPoint.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList(),
+        insights: (j['insights'] as List? ?? [])
+            .map((e) => Insight.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList(),
+        analyzed: (j['analyzed'] as bool?) ?? false,
       );
 }

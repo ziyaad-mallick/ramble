@@ -2,13 +2,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/transcription_service.dart';
 import '../services/os_stt_service.dart';
-import '../services/formatter_service.dart';
+import '../services/thinking_service.dart';
 import '../services/storage_service.dart';
 import '../services/settings_service.dart';
-import '../services/miko_service.dart';
 import '../services/notification_service.dart';
 import '../services/app_events.dart';
-import '../models/miko_response.dart';
 import '../theme/ramble_theme.dart';
 import '../widgets/miko/miko_waveform.dart';
 import '../widgets/miko/miko_character.dart';
@@ -79,32 +77,32 @@ class _RecordingScreenState extends State<RecordingScreen> {
   Future<void> _process(String text) async {
     final nav = Navigator.of(context);
     final projects = StorageService.instance.allProjects();
-    final note = await FormatterService.buildNote(
+    final history = StorageService.instance.allNotes();
+
+    // Hand the transcript to Miko, the thinking partner. With an API key this
+    // is the real LLM brain (summary, thought-arc, contradictions, stats); without
+    // one it degrades to rule-based structuring. Either way we get a Note back.
+    final note = await ThinkingService.analyze(
       transcript: text,
       durationSeconds: _elapsed,
       projects: projects,
+      history: history,
       apiKey: SettingsService.instance.apiKey,
+      mikoEnabled: SettingsService.instance.mikoEnabled,
     );
+
     await StorageService.instance.saveNote(note);
     bumpData();
     await NotificationService.instance.scheduleNoteReminders(note);
-    var miko = const MikoResponse(trigger: MikoTrigger.none, message: '');
-    if (SettingsService.instance.mikoEnabled) {
-      final history =
-          StorageService.instance.allNotes().where((n) => n.id != note.id).toList();
-      miko = MikoService.react(note, history);
-      if (!miko.isSilent) {
-        await NotificationService.instance.showMiko('miko', miko.message);
-      }
+
+    // Nudge with Miko's sharpest intervention.
+    if (SettingsService.instance.mikoEnabled && note.insights.isNotEmpty) {
+      await NotificationService.instance.showMiko('miko', note.insights.first.text);
     }
+
     if (!mounted) return;
     nav.pushReplacement(
-      MaterialPageRoute(
-        builder: (_) => NoteDetailScreen(
-          note: note,
-          mikoResponse: miko.isSilent ? null : miko,
-        ),
-      ),
+      MaterialPageRoute(builder: (_) => NoteDetailScreen(note: note)),
     );
   }
 
