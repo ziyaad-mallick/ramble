@@ -166,6 +166,20 @@ Dart infrastructure for Whisper STT + recording screen overhaul + UI dead-button
   (~150MB Whisper base), and `WhisperSttService implements TranscriptionService` that uses
   AudioService.start()/stop() + sherpa_onnx decode. Sonnet handles this at start of next session.
 
+### ✅ THINKING-PARTNER PIVOT — Miko gets a brain  *(DONE 2026-06-08)*
+The big reframe: Ramble is no longer "voice → structured note", it's "voice → **thinking partner**".
+You ramble; Miko turns it into a structured *thinking document* and engages with your thinking.
+- `thinking_service` — LLM brain (Claude `claude-opus-4-8` via `llm_client`, user's own key, direct HTTP).
+  Produces: **summary**, the **arc** of your thought (start→points→turns→landing), an auto
+  **context** tag (University/Startup/…), and Miko **insights**: support / correction /
+  **contradiction (vs your own past notes)** / question / **stat**. Rule-based fallback offline.
+- `llm_client` — raw Messages API client, `web_search` enabled for live-stat deep dives. Key never ships in APK.
+- `note_detail_screen` rebuilt as the thinking document: summary, visual arc thread, insight cards,
+  **Ask Miko** deep-dive ("pull TAM/SAM/SOM", "find holes", fact-check), Markdown + PDF export.
+- `document_service` (MD + PDF), `insight_card` widget. `Note` model extended (backward-compatible).
+**You provide:** a Claude API key in Settings to wake Miko (else it stays rule-based offline).
+**Demo:** ramble about a skincare app → get a structured doc → ask Miko to pull the TAM/SAM/SOM → cited stats appear.
+
 ### 🔨 SESSION 2 — Organize & Navigate  *(NEXT — after sherpa_onnx integration)*
 The "where do my notes live" layer. All on-device, no backend.
 - `project_screen` (auto-brief, task backlog, question pool, people, notes filtered)
