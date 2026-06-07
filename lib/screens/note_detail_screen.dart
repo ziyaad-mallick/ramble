@@ -5,7 +5,7 @@ import 'package:share_plus/share_plus.dart';
 import '../models/note.dart';
 import '../services/app_events.dart';
 import '../services/document_service.dart';
-import '../services/settings_service.dart';
+import '../services/local_llm_service.dart';
 import '../services/storage_service.dart';
 import '../services/thinking_service.dart';
 import '../theme/ramble_theme.dart';
@@ -98,11 +98,7 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
     FocusScope.of(context).unfocus();
     setState(() => _asking = true);
     try {
-      final insight = await ThinkingService.deepDive(
-        note: note,
-        query: query,
-        apiKey: SettingsService.instance.apiKey,
-      );
+      final insight = await ThinkingService.deepDive(note: note, query: query);
       note.insights.add(insight);
       await StorageService.instance.saveNote(note);
       bumpData();
@@ -112,7 +108,7 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text("Miko couldn't reach the web — check your key.")),
+              content: Text('Download Miko\'s brain in settings to ask.')),
         );
       }
     } finally {
@@ -417,7 +413,7 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
 
   /// The deep-dive box — ask Miko to pull stats, fact-check, or find holes.
   Widget _askMikoBox(RambleScheme scheme) {
-    final hasKey = SettingsService.instance.hasApiKey;
+    final ready = LocalLlmService.instance.isInstalled;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(RambleSpace.s4),
@@ -438,14 +434,14 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
             ],
           ),
           const SizedBox(height: RambleSpace.s2),
-          if (!hasKey)
+          if (!ready)
             Text(
-              'add an AI key in settings to have Miko pull real stats, fact-check, and find holes in your thinking.',
+              'download Miko\'s brain in settings, then ask her to find holes, counter your thinking, or sketch what you\'re missing — all on-device.',
               style: RambleType.caption(RambleColors.pixelLavender),
             )
           else ...[
             Text(
-              'e.g. "pull the TAM, SAM and SOM" · "find holes in this" · "what does the research say?"',
+              'e.g. "find holes in this" · "what am I missing?" · "argue the other side"',
               style: RambleType.caption(RambleColors.pixelLavender),
             ),
             const SizedBox(height: RambleSpace.s3),

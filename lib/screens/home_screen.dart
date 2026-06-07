@@ -5,6 +5,7 @@ import '../services/storage_service.dart';
 import '../services/settings_service.dart';
 import '../services/app_events.dart';
 import '../widgets/note_card.dart';
+import '../widgets/ramble_fx.dart';
 import '../widgets/miko/miko_character.dart';
 import '../widgets/miko/miko_painter.dart';
 import 'recording_screen.dart';
@@ -25,7 +26,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       backgroundColor: scheme.bg,
-      body: SafeArea(
+      body: RambleBackground(
+        child: SafeArea(
         child: ValueListenableBuilder<int>(
           valueListenable: dataVersion,
           builder: (context, version, _) {
@@ -54,9 +56,10 @@ class _HomeScreenState extends State<HomeScreen> {
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
+                                RambleGradientText(
                                   userName.isNotEmpty ? 'hey, ${userName.split(' ').first}.' : 'hey.',
-                                  style: RambleType.screenTitle(RambleColors.mikoPurple),
+                                  style: RambleType.screenTitle(Colors.white),
+                                  gradient: RambleGradients.miko,
                                 ),
                                 const SizedBox(height: RambleSpace.s1),
                                 Text(
@@ -210,13 +213,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
 
-                // Record button (bottom center)
+                // Record button (bottom center) — glowing, pulsing hero control
                 Positioned(
-                  bottom: RambleSpace.s5,
+                  bottom: RambleSpace.s4,
                   left: 0,
                   right: 0,
                   child: Center(
-                    child: GestureDetector(
+                    child: GlowRecordButton(
                       onTap: () async {
                         await Navigator.push(
                           context,
@@ -225,30 +228,6 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         );
                       },
-                      child: Container(
-                        width: 72,
-                        height: 72,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: RambleColors.mikoPurple,
-                          border: Border.all(
-                            color: RambleColors.deepNavy,
-                            width: 3,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              offset: const Offset(4, 4),
-                              blurRadius: 0,
-                              color: scheme.shadow,
-                            ),
-                          ],
-                        ),
-                        child: Icon(
-                          Icons.mic,
-                          color: Colors.white,
-                          size: 32,
-                        ),
-                      ),
                     ),
                   ),
                 ),
@@ -256,6 +235,7 @@ class _HomeScreenState extends State<HomeScreen> {
             );
           },
         ),
+      ),
       ),
     );
   }

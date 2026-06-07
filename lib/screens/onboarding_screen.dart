@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import '../theme/ramble_theme.dart';
 import '../services/settings_service.dart';
 import '../widgets/ramble_button.dart';
+import '../widgets/ramble_fx.dart';
 import '../widgets/miko/miko_character.dart';
 import '../widgets/miko/miko_painter.dart';
+import 'home_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -31,10 +33,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     SettingsService.instance.userName = _controller.text.trim();
     SettingsService.instance.onboarded = true;
 
-    // Navigate to home screen
     if (mounted) {
-      // Using a simple navigation - you may need to adjust this if home_screen.dart is created
-      Navigator.of(context).pushReplacementNamed('/home');
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+      );
     }
   }
 
@@ -44,7 +46,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
     return Scaffold(
       backgroundColor: scheme.bg,
-      body: SafeArea(
+      body: RambleBackground(
+        child: SafeArea(
         child: SingleChildScrollView(
           child: Center(
             child: Column(
@@ -57,10 +60,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   state: MikoState.idle,
                 ),
                 SizedBox(height: RambleSpace.s6),
-                // "Ramble" wordmark
-                Text(
+                // "Ramble" wordmark — gradient hero
+                RambleGradientText(
                   'Ramble',
-                  style: RambleType.wordmark(scheme.ink),
+                  style: RambleType.wordmark(Colors.white),
+                  gradient: RambleGradients.miko,
                 ),
                 SizedBox(height: RambleSpace.s3),
                 // Tagline
@@ -154,6 +158,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ),
           ),
         ),
+      ),
       ),
     );
   }

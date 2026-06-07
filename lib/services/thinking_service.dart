@@ -5,18 +5,15 @@ import '../models/project.dart';
 import '../models/miko_response.dart';
 import 'formatter_service.dart';
 import 'miko_service.dart';
-import 'llm_client.dart';
 import 'local_llm_service.dart';
 
-/// The thinking-partner engine, tiered for cost:
+/// The thinking-partner engine — **100% on-device, zero cloud, zero cost**.
 ///
-///  1. **Per-note analysis** runs on Miko's *local* brain (on-device Gemma) when
-///     it's installed — free, offline, private. If it isn't installed or fails,
-///     we degrade to rule-based structuring. The cloud is NEVER used per-note,
-///     so everyday rambling can't run up an API bill.
-///  2. **Deep dives** ("Ask Miko: pull the TAM/SAM/SOM", "fact-check this") are
-///     the only paid path — they need live web data, so they hit the cloud
-///     ([LlmClient]) with web search, and only when the user explicitly asks.
+///  1. **Per-note analysis** runs on Miko's local brain (on-device Gemma) when
+///     it's installed; otherwise it degrades to rule-based structuring.
+///  2. **Deep dives** ("Ask Miko: find holes in this", "what am I missing?")
+///     also run on the local brain — Miko reasons over your note and her view
+///     of your other notes. Nothing ever leaves the phone.
 class ThinkingService {
   /// Build a thinking document from a transcript. Local-first; never cloud.
   static Future<Note> analyze({
@@ -48,37 +45,32 @@ class ThinkingService {
     );
   }
 
-  /// Ask Miko to dig deeper — the only cloud path. Needs a key + internet.
+  /// Ask Miko to dig deeper — runs entirely on the on-device brain. She reasons
+  /// over the note and sharpens the thinking (holes, counterpoints, next steps).
+  /// Throws if the local model isn't ready so the caller can prompt a download.
   static Future<Insight> deepDive({
     required Note note,
     required String query,
-    required String apiKey,
   }) async {
-    final client = LlmClient(apiKey);
-    final system =
-        'You are Miko, a rigorous thinking partner inside a voice-note app. '
-        'The user has been thinking about: "${note.title}". '
-        'Their note summary: "${note.summary.isEmpty ? note.keyQuote : note.summary}". '
-        'They are asking you to dig deeper. Use web search to find REAL, current '
-        'figures, facts, and evidence. Be concrete and numeric where possible, and '
-        'honest about uncertainty — never invent a statistic. '
-        'Respond ONLY with a JSON object, no markdown fences, of the form: '
-        '{"kind":"stat"|"support"|"correction","text":"2-4 sentence answer with concrete numbers","source":"the single most useful source URL, or empty string"}';
-    final raw = await client.complete(
-      system: system,
-      userText: query,
-      webSearch: true,
-      maxTokens: 2048,
-    );
+    final prompt =
+        'You are Miko, a sharp, honest thinking partner inside a voice-note app. '
+        'The user is thinking about: "${note.title}". '
+        'Their summary: "${note.summary.isEmpty ? note.keyQuote : note.summary}". '
+        'They asked you: "$query". '
+        'Reason it through and reply with ONE focused intervention. Be concrete and '
+        'honest — if you estimate a number, say it is an estimate. '
+        'Respond with ONLY a minified JSON object, no code fences: '
+        '{"kind":"support|correction|contradiction|question|stat","text":"2-4 sentences","source":""}';
+    final raw = await LocalLlmService.instance.complete(prompt: prompt);
     final map = _extractJson(raw);
     if (map != null) {
       return Insight(
         kind: _safeInsightKind(map['kind'] as String?),
         text: (map['text'] as String?)?.trim() ?? raw,
-        source: (map['source'] as String?)?.trim() ?? '',
+        source: '',
       );
     }
-    return Insight(kind: 'stat', text: raw, source: '');
+    return Insight(kind: 'question', text: raw, source: '');
   }
 
   // ── Local LLM path ────────────────────────────────────────────────────────

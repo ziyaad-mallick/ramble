@@ -13,16 +13,11 @@ class SettingsService {
   String get userName => _box.get('userName', defaultValue: '') as String;
   set userName(String v) => _box.put('userName', v);
 
-  String get apiKey => _box.get('apiKey', defaultValue: '') as String;
-  set apiKey(String v) => _box.put('apiKey', v);
-
   bool get mikoEnabled => _box.get('mikoEnabled', defaultValue: true) as bool;
   set mikoEnabled(bool v) => _box.put('mikoEnabled', v);
 
   bool get onboarded => _box.get('onboarded', defaultValue: false) as bool;
   set onboarded(bool v) => _box.put('onboarded', v);
-
-  bool get hasApiKey => apiKey.trim().isNotEmpty;
 
   // ── Miko's local brain (on-device LLM) ──────────────────────────────────
   /// Default: Gemma 3 1B IT, int4 quantized (~550MB) from the LiteRT community.

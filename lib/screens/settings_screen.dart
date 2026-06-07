@@ -16,7 +16,6 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   late TextEditingController _userNameController;
-  late TextEditingController _apiKeyController;
 
   bool _downloading = false;
   int _progress = 0;
@@ -26,8 +25,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.initState();
     _userNameController =
         TextEditingController(text: SettingsService.instance.userName);
-    _apiKeyController =
-        TextEditingController(text: SettingsService.instance.apiKey);
   }
 
   Future<void> _downloadLocalBrain() async {
@@ -61,7 +58,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void dispose() {
     _userNameController.dispose();
-    _apiKeyController.dispose();
     super.dispose();
   }
 
@@ -72,22 +68,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         SnackBar(
           content: Text(
             'name saved',
-            style: RambleType.body(context.ramble.ink),
-          ),
-          backgroundColor: context.ramble.surface,
-        ),
-      );
-    }
-  }
-
-  void _saveApiKey() {
-    SettingsService.instance.apiKey = _apiKeyController.text;
-    if (mounted) {
-      setState(() {});
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'saved',
             style: RambleType.body(context.ramble.ink),
           ),
           backgroundColor: context.ramble.surface,
@@ -303,85 +283,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ),
                   ],
-                ],
-              ),
-            ),
-            const SizedBox(height: RambleSpace.s5),
-
-            // Section 3b: Web research (optional cloud key, deep dives only)
-            Text(
-              'WEB RESEARCH (OPTIONAL)',
-              style: RambleType.label(scheme.inkSoft),
-            ),
-            const SizedBox(height: RambleSpace.s2),
-            RambleCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'a Claude API key lets "Ask Miko" pull live stats and fact-check from the web. it is NOT used for everyday notes — only when you tap Ask Miko — so it won\'t run up a bill. your key stays on this device.',
-                    style: RambleType.caption(scheme.inkSoft),
-                  ),
-                  const SizedBox(height: RambleSpace.s3),
-                  TextField(
-                    controller: _apiKeyController,
-                    obscureText: true,
-                    style: RambleType.body(scheme.ink),
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(RambleGeo.inputRadius),
-                        borderSide: BorderSide(
-                          color: scheme.border,
-                          width: 2,
-                        ),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(RambleGeo.inputRadius),
-                        borderSide: BorderSide(
-                          color: scheme.border,
-                          width: 2,
-                        ),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(RambleGeo.inputRadius),
-                        borderSide: BorderSide(
-                          color: RambleColors.mikoPurple,
-                          width: 2,
-                        ),
-                      ),
-                      filled: true,
-                      fillColor: scheme.bg,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: RambleSpace.s3,
-                        vertical: RambleSpace.s2,
-                      ),
-                      hintText: 'paste API key (optional)',
-                      hintStyle: RambleType.body(scheme.inkSoft),
-                    ),
-                  ),
-                  const SizedBox(height: RambleSpace.s3),
-                  SizedBox(
-                    width: double.infinity,
-                    child: RambleButton(
-                      label: 'SAVE',
-                      kind: RambleButtonKind.primary,
-                      onTap: _saveApiKey,
-                      expand: true,
-                    ),
-                  ),
-                  const SizedBox(height: RambleSpace.s3),
-                  Center(
-                    child: Text(
-                      SettingsService.instance.hasApiKey
-                          ? '✓ Miko is awake'
-                          : 'offline mode',
-                      style: RambleType.caption(
-                        SettingsService.instance.hasApiKey
-                            ? RambleColors.bit8Green
-                            : scheme.inkSoft,
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ),

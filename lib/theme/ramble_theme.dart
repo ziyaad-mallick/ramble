@@ -73,6 +73,42 @@ class RambleGeo {
   static const pixelShadowOffset = 4.0;
 }
 
+/// Signature gradients. Used on hero elements only (wordmark, record button,
+/// Miko panels) — never as wallpaper. Keeps the brand from going generic.
+class RambleGradients {
+  static const miko = LinearGradient(
+    colors: [RambleColors.mikoPurple, RambleColors.pixelPink],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  static const dusk = LinearGradient(
+    colors: [RambleColors.mikoPurple, RambleColors.pixelSky],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  static const ember = LinearGradient(
+    colors: [RambleColors.pixelPink, RambleColors.retroOrange],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+}
+
+/// Soft neon glow — the "cool" counterpart to the hard pixel shadow. Use it to
+/// make a hero element feel lit from within (record button, active states).
+class RambleShadows {
+  static List<BoxShadow> glow(Color color,
+          {double blur = 24, double spread = 1, double opacity = 0.5}) =>
+      [
+        BoxShadow(
+          color: color.withValues(alpha: opacity),
+          blurRadius: blur,
+          spreadRadius: spread,
+        ),
+      ];
+}
+
 /// Typography. Press Start 2P for display/wordmark/Miko, DM Sans for UI/body,
 /// JetBrains Mono for transcripts. Built via google_fonts so no asset bundling.
 class RambleType {
