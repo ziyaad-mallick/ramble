@@ -154,7 +154,19 @@ record → on-device transcribe → 7-type intent → structured doc → Miko ta
 projects/inbox. Onboarding, home, recording, detail, settings. Offline rule-based AI.
 **Demo:** talk → get a structured note → Miko reacts. APK v1.0.0 shipped.
 
-### 🔨 SESSION 2 — Organize & Navigate  *(NEXT)*
+### ✅ REWORK SLICE — STT Refactor + UI Fixes  *(DONE — between S1 and S2)*
+Dart infrastructure for Whisper STT + recording screen overhaul + UI dead-button fixes.
+- `TranscriptionService` abstract interface (levelStream, init, start, stop, cancel, dispose)
+- `OsSttService` — speech_to_text impl, 60s pauseFor, no live partials, accumulates best result
+- `AudioService` — record 7.0.0, 16kHz mono WAV, amplitude stream (S4 playback pre-work)
+- Recording screen: record→waveform+timer→stop→transcribing→note (no partial flicker)
+- `home_screen.dart`: project chips now tappable (stub snackbar until S2 project_screen)
+- `note_detail_screen.dart`: fixed field separator bug (lastIndexOf→indexOf on field keys)
+- **sherpa_onnx (WhisperSttService) NOT YET DONE** — needs `sherpa_onnx` pub pkg, model assets
+  (~150MB Whisper base), and `WhisperSttService implements TranscriptionService` that uses
+  AudioService.start()/stop() + sherpa_onnx decode. Sonnet handles this at start of next session.
+
+### 🔨 SESSION 2 — Organize & Navigate  *(NEXT — after sherpa_onnx integration)*
 The "where do my notes live" layer. All on-device, no backend.
 - `project_screen` (auto-brief, task backlog, question pool, people, notes filtered)
 - `inbox_screen` (swipe-right assign / swipe-left delete, batch)
