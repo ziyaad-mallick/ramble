@@ -6,6 +6,7 @@ import '../models/miko_response.dart';
 import 'formatter_service.dart';
 import 'miko_service.dart';
 import 'local_llm_service.dart';
+import 'storage_service.dart';
 
 /// The thinking-partner engine — **100% on-device, zero cloud, zero cost**.
 ///
@@ -87,11 +88,13 @@ class ThinkingService {
     final raw = await LocalLlmService.instance.complete(prompt: prompt);
     final map = _extractJson(raw);
     if (map == null) throw const FormatException('Local analysis: no JSON');
+    final context = (map['context'] as String?)?.trim() ?? '';
+    final projectId = await _resolveProject(context, projects);
     return _buildNoteFromAnalysis(
       map: map,
       transcript: transcript,
       durationSeconds: durationSeconds,
-      projects: projects,
+      projectId: projectId,
       mikoEnabled: mikoEnabled,
     );
   }
@@ -143,7 +146,7 @@ class ThinkingService {
     required Map<String, dynamic> map,
     required String transcript,
     required int durationSeconds,
-    required List<Project> projects,
+    required String projectId,
     required bool mikoEnabled,
   }) {
     final type = NoteTypeX.fromIndex((map['type_index'] as num?)?.toInt() ?? 0);
@@ -180,7 +183,7 @@ class ThinkingService {
       id: 'n_${DateTime.now().microsecondsSinceEpoch}',
       title: title,
       type: type,
-      projectId: _assignProject(transcript, projects),
+      projectId: projectId,
       keyQuote: summary.isNotEmpty ? summary : title,
       fields: {},
       rawTranscript: transcript,
@@ -218,8 +221,10 @@ class ThinkingService {
         .map((s) => s.trim())
         .where((s) => s.isNotEmpty)
         .toList();
+    final context = _deriveContext(transcript);
+    note.context = context;
+    note.projectId = await _resolveProject(context, projects);
     note.summary = note.keyQuote;
-    note.context = '';
     if (sentences.isNotEmpty) {
       note.arc = [
         ThoughtPoint(kind: 'start', text: sentences.first),
@@ -298,18 +303,50 @@ class ThinkingService {
     return t;
   }
 
-  static String _assignProject(String transcript, List<Project> projects) {
-    if (projects.isEmpty) return '';
-    final lower = transcript.toLowerCase();
-    String? best;
-    int bestLen = 0;
-    for (final p in projects) {
-      final name = p.name.toLowerCase();
-      if (name.isNotEmpty && lower.contains(name) && name.length > bestLen) {
-        best = p.id;
-        bestLen = name.length;
-      }
+  /// Offline keyword classifier → a life-context bucket (or '' for Inbox).
+  /// Mirrors the LLM's `context` field so notes auto-sort even without Gemma.
+  static String _deriveContext(String transcript) {
+    final t = ' ${transcript.toLowerCase()} ';
+    bool has(List<String> kw) => kw.any((k) => t.contains(k));
+    if (has(['lecture', 'exam', 'assignment', 'professor', 'semester',
+        'homework', 'classmate', 'university', 'campus', 'midterm', 'quiz',
+        'syllabus', 'study for', 'my class', 'the class'])) return 'University';
+    if (has(['startup', 'mvp', 'founder', 'pitch', 'investor', 'traction',
+        'co-founder', 'product-market', 'go to market', 'user acquisition',
+        'my app', 'the app', 'launch'])) return 'Startup';
+    if (has(['client', 'meeting', 'deadline', 'manager', 'colleague',
+        'deliverable', 'stakeholder', 'sprint', 'standup', 'the office',
+        'my boss', 'at work'])) return 'Work';
+    if (has(['workout', 'gym', 'sleep', 'diet', 'calories', 'therapy',
+        'meditat', 'anxiety', 'doctor', 'my health', 'running'])) {
+      return 'Health';
     }
-    return best ?? '';
+    if (has(['budget', 'invest', 'expense', 'salary', 'rent', 'savings',
+        'income', 'debt', 'portfolio', 'spending'])) return 'Finance';
+    if (has(['design', 'a song', 'painting', 'sketch', 'a story', 'film',
+        'poem', 'my art', 'writing a'])) return 'Creative';
+    return '';
+  }
+
+  /// Find a project matching [context]; create + persist one if it's new.
+  /// '' / Personal / Other stay in the Inbox to avoid a junk catch-all.
+  static Future<String> _resolveProject(
+      String context, List<Project> projects) async {
+    final name = context.trim();
+    final lower = name.toLowerCase();
+    if (name.isEmpty || lower == 'other' || lower == 'personal') return '';
+    for (final p in projects) {
+      if (p.name.toLowerCase() == lower) return p.id;
+    }
+    final proj = Project(
+      id: 'p_${DateTime.now().microsecondsSinceEpoch}',
+      name: name,
+      description: '',
+      colorValue: 0xFF161614, // ink — zen monochrome
+      pinned: false,
+      createdAt: DateTime.now(),
+    );
+    await StorageService.instance.saveProject(proj);
+    return proj.id;
   }
 }

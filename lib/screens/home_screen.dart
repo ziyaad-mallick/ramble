@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../theme/ramble_theme.dart';
 import '../services/storage_service.dart';
 import '../services/settings_service.dart';
@@ -19,6 +18,9 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  /// Active filter: null = all notes, '' = Inbox, else a projectId.
+  String? _filter;
+
   @override
   Widget build(BuildContext context) {
     final scheme = context.ramble;
@@ -33,6 +35,15 @@ class _HomeScreenState extends State<HomeScreen> {
             final allProjects = StorageService.instance.allProjects();
             final inboxNotes = StorageService.instance.inboxNotes();
             final userName = SettingsService.instance.userName;
+            // Drop a filter that points at a project that no longer exists.
+            if (_filter != null &&
+                _filter!.isNotEmpty &&
+                !allProjects.any((p) => p.id == _filter)) {
+              _filter = null;
+            }
+            final shownNotes = _filter == null
+                ? allNotes
+                : allNotes.where((n) => n.projectId == _filter).toList();
 
             return Stack(
               children: [
@@ -139,7 +150,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                       context: context,
                                       name: 'Inbox',
                                       noteCount: inboxNotes.length,
-                                      colorValue: RambleColors.mikoPurple.value,
+                                      selected: _filter == '',
+                                      onTap: () => setState(
+                                          () => _filter = _filter == '' ? null : ''),
                                     ),
                                     // Project chips
                                     ...allProjects.map((project) {
@@ -150,9 +163,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                         context: context,
                                         name: project.name,
                                         noteCount: noteCount,
-                                        colorValue: project.colorValue,
+                                        selected: _filter == project.id,
+                                        onTap: () => setState(() => _filter =
+                                            _filter == project.id
+                                                ? null
+                                                : project.id),
                                       );
-                                    }).toList(),
+                                    }),
                                   ].expand((w) {
                                     return [w, const SizedBox(width: RambleSpace.s3)];
                                   }).toList(),
@@ -179,7 +196,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 horizontal: RambleSpace.s4,
                               ),
                               child: Column(
-                                children: allNotes
+                                children: shownNotes
                                     .take(30)
                                     .map((note) {
                                       return Padding(
@@ -260,42 +277,27 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// Builds a project chip with hard-pixel styling.
+  /// A project filter chip. Selected = solid ink; tap toggles the home filter.
   Widget _buildProjectChip({
     required BuildContext context,
     required String name,
     required int noteCount,
-    required int colorValue,
+    required bool selected,
+    required VoidCallback onTap,
   }) {
     final scheme = context.ramble;
-    final chipColor = Color(colorValue);
-
     return GestureDetector(
-      onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('$name — coming soon'),
-          duration: const Duration(seconds: 1),
-        ),
-      ),
-      child: Container(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 120),
         padding: const EdgeInsets.symmetric(
           horizontal: RambleSpace.s3,
           vertical: RambleSpace.s2,
         ),
         decoration: BoxDecoration(
-          color: scheme.surface,
-          border: Border.all(
-            color: chipColor,
-            width: 2,
-          ),
+          color: selected ? scheme.ink : scheme.surface,
+          border: Border.all(color: scheme.border, width: RambleGeo.borderWidth),
           borderRadius: BorderRadius.circular(RambleGeo.cardRadius),
-          boxShadow: [
-            BoxShadow(
-              offset: const Offset(4, 4),
-              blurRadius: 0,
-              color: scheme.shadow,
-            ),
-          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -303,16 +305,14 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Text(
               name,
-              style: GoogleFonts.dmSans(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: scheme.ink,
-              ),
+              style: RambleType.body(selected ? scheme.bg : scheme.ink)
+                  .copyWith(fontSize: 14, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: RambleSpace.s1),
             Text(
-              '$noteCount notes',
-              style: RambleType.caption(scheme.inkSoft),
+              '$noteCount ${noteCount == 1 ? 'note' : 'notes'}',
+              style: RambleType.caption(
+                  selected ? scheme.bg.withValues(alpha: 0.85) : scheme.inkSoft),
             ),
           ],
         ),

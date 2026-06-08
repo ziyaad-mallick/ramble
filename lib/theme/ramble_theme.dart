@@ -1,54 +1,60 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// Ramble design system — "Playful 90s Retro Pixel Kawaii".
+/// Ramble design system — "Zen editorial": calm black-and-white, serif type,
+/// generous whitespace. Built for a thinking partner, not a toy.
 ///
-/// This is the single source of truth for all colors, typography, spacing,
-/// and the signature hard-pixel-shadow surfaces. Every widget imports from here.
-/// Do not hardcode colors or text styles anywhere else.
+/// Single source of truth for color, type, spacing. The old kawaii color names
+/// are kept as aliases (so widgets keep compiling) but now resolve to a strict
+/// monochrome palette. Miko (the logo art) is the one spot of colour.
 class RambleColors {
-  // ── Primary palette ──────────────────────────────────────────────────────
-  static const mikoPurple = Color(0xFF7C3AED);
-  static const pixelPink = Color(0xFFEC4899);
-  static const creamBase = Color(0xFFFAF5F0);
-  static const deepNavy = Color(0xFF1A1A2E);
-  static const softBlush = Color(0xFFF9A8D4);
+  // ── Monochrome core ──────────────────────────────────────────────────────
+  static const paper = Color(0xFFFAFAF8); // light background
+  static const ink = Color(0xFF161614); // primary text / black
+  static const inkMute = Color(0xFF6E6E68); // secondary text
+  static const line = Color(0xFFE5E3DD); // hairline border
+  static const white = Color(0xFFFFFFFF);
 
-  // ── Extended palette ─────────────────────────────────────────────────────
-  static const pixelLavender = Color(0xFFC4B5FD);
-  static const warmWhite = Color(0xFFFFFBF7);
-  static const gameboyGray = Color(0xFF6B7280);
-  static const bit8Green = Color(0xFF10B981);
-  static const retroOrange = Color(0xFFF59E0B);
-  static const pixelSky = Color(0xFF60A5FA);
-  static const crtOffBlack = Color(0xFF0F0F1A);
-  static const warmRed = Color(0xFFEF4444);
+  // ── Back-compat aliases (resolve to monochrome) ──────────────────────────
+  static const mikoPurple = ink; // "primary" → black
+  static const pixelPink = Color(0xFF2B2B29); // emphasis → near-black
+  static const creamBase = paper;
+  static const warmWhite = white;
+  static const deepNavy = ink;
+  static const softBlush = Color(0xFFEDEDEA);
+  static const pixelLavender = Color(0xFFB7B7B1);
+  static const gameboyGray = inkMute;
+  static const crtOffBlack = Color(0xFF0E0E0D);
+  static const darkSurface = Color(0xFF1A1A18);
+  static const darkText = Color(0xFFEDEDE8);
 
-  // ── Dark-mode surfaces ───────────────────────────────────────────────────
-  static const darkSurface = Color(0xFF16162A);
-  static const darkText = Color(0xFFE8E8F0);
+  // Semantic accents — desaturated to near-grey so the canvas stays zen.
+  static const bit8Green = Color(0xFF2F2F2D); // "support"
+  static const retroOrange = Color(0xFF4A4A46); // "correction"
+  static const pixelSky = Color(0xFF3A3A37); // "question"
+  static const warmRed = Color(0xFF7C4A45); // danger — one muted brick tone
 }
 
-/// Brand color per note intent type. Used for badges, card accent stripes,
-/// and graph nodes. Keep in lockstep with [NoteType] in models/note.dart.
+/// Brand tone per note intent type. All map to monochrome shades now —
+/// differentiation comes from type label + serif, not colour.
 enum RambleNoteTone { idea, task, meeting, study, reflection, research, feedback }
 
 Color noteToneColor(RambleNoteTone tone) {
   switch (tone) {
     case RambleNoteTone.idea:
-      return RambleColors.mikoPurple;
+      return RambleColors.ink;
     case RambleNoteTone.task:
-      return RambleColors.retroOrange;
+      return const Color(0xFF3A3A37);
     case RambleNoteTone.meeting:
-      return RambleColors.pixelSky;
+      return const Color(0xFF4A4A46);
     case RambleNoteTone.study:
-      return RambleColors.bit8Green;
+      return const Color(0xFF2F2F2D);
     case RambleNoteTone.reflection:
-      return RambleColors.pixelPink;
+      return const Color(0xFF555550);
     case RambleNoteTone.research:
-      return RambleColors.softBlush;
+      return const Color(0xFF44443F);
     case RambleNoteTone.feedback:
-      return RambleColors.warmRed;
+      return const Color(0xFF6E6E68);
   }
 }
 
@@ -64,88 +70,56 @@ class RambleSpace {
   static const s8 = 64.0;
 }
 
-/// Shared geometry constants.
+/// Geometry — softened and thinned for the editorial look.
 class RambleGeo {
-  static const cardRadius = 8.0;
-  static const inputRadius = 6.0;
-  static const badgeRadius = 4.0;
-  static const borderWidth = 2.0;
-  static const pixelShadowOffset = 4.0;
+  static const cardRadius = 10.0;
+  static const inputRadius = 8.0;
+  static const badgeRadius = 6.0;
+  static const borderWidth = 1.0;
+  static const pixelShadowOffset = 0.0;
 }
 
-/// Signature gradients. Used on hero elements only (wordmark, record button,
-/// Miko panels) — never as wallpaper. Keeps the brand from going generic.
-class RambleGradients {
-  static const miko = LinearGradient(
-    colors: [RambleColors.mikoPurple, RambleColors.pixelPink],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
-
-  static const dusk = LinearGradient(
-    colors: [RambleColors.mikoPurple, RambleColors.pixelSky],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
-
-  static const ember = LinearGradient(
-    colors: [RambleColors.pixelPink, RambleColors.retroOrange],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
-}
-
-/// Soft neon glow — the "cool" counterpart to the hard pixel shadow. Use it to
-/// make a hero element feel lit from within (record button, active states).
-class RambleShadows {
-  static List<BoxShadow> glow(Color color,
-          {double blur = 24, double spread = 1, double opacity = 0.5}) =>
-      [
-        BoxShadow(
-          color: color.withValues(alpha: opacity),
-          blurRadius: blur,
-          spreadRadius: spread,
-        ),
-      ];
-}
-
-/// Typography. Press Start 2P for display/wordmark/Miko, DM Sans for UI/body,
-/// JetBrains Mono for transcripts. Built via google_fonts so no asset bundling.
+/// Typography. Fraunces (a warm modern serif) for display/headings, Newsreader
+/// for reading text. All via google_fonts — no asset bundling.
 class RambleType {
-  static TextStyle wordmark(Color c) =>
-      GoogleFonts.pressStart2p(fontSize: 24, height: 1.2, color: c);
+  static TextStyle wordmark(Color c) => GoogleFonts.fraunces(
+      fontSize: 34, fontWeight: FontWeight.w600, height: 1.1, color: c);
 
-  static TextStyle screenTitle(Color c) =>
-      GoogleFonts.pressStart2p(fontSize: 14, height: 1.4, color: c);
+  static TextStyle screenTitle(Color c) => GoogleFonts.fraunces(
+      fontSize: 24, fontWeight: FontWeight.w600, height: 1.2, color: c);
 
-  static TextStyle mikoMessage(Color c) =>
-      GoogleFonts.pressStart2p(fontSize: 11, height: 1.8, color: c);
+  static TextStyle sectionHeader(Color c) => GoogleFonts.fraunces(
+      fontSize: 19, fontWeight: FontWeight.w600, height: 1.3, color: c);
 
-  static TextStyle sectionHeader(Color c) => GoogleFonts.dmSans(
-      fontSize: 18, fontWeight: FontWeight.w700, height: 1.3, color: c);
+  static TextStyle mikoMessage(Color c) => GoogleFonts.newsreader(
+      fontSize: 15, fontStyle: FontStyle.italic, height: 1.6, color: c);
 
-  static TextStyle body(Color c) =>
-      GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.w400, height: 1.6, color: c);
+  static TextStyle body(Color c) => GoogleFonts.newsreader(
+      fontSize: 16, fontWeight: FontWeight.w400, height: 1.65, color: c);
 
-  static TextStyle label(Color c) =>
-      GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.w500, height: 1.4, color: c);
+  // Small uppercase eyebrow labels — serif, letterspaced, quiet.
+  static TextStyle label(Color c) => GoogleFonts.newsreader(
+      fontSize: 12,
+      fontWeight: FontWeight.w500,
+      height: 1.4,
+      letterSpacing: 1.8,
+      color: c);
 
-  static TextStyle caption(Color c) =>
-      GoogleFonts.dmSans(fontSize: 11, fontWeight: FontWeight.w400, height: 1.4, color: c);
+  static TextStyle caption(Color c) => GoogleFonts.newsreader(
+      fontSize: 13, fontWeight: FontWeight.w400, height: 1.45, color: c);
 
-  static TextStyle transcript(Color c) =>
-      GoogleFonts.jetBrainsMono(fontSize: 14, height: 1.7, color: c);
+  static TextStyle transcript(Color c) => GoogleFonts.newsreader(
+      fontSize: 15, fontStyle: FontStyle.italic, height: 1.7, color: c);
 }
 
-/// A pair of semantic colors that flips between light and dark mode.
-/// Accessed via `context.ramble` (see [RambleThemeX]).
+/// Semantic colours that flip between light and dark. Accessed via `context.ramble`.
 class RambleScheme {
-  final Color bg; // app background (cream / crt-off-black)
-  final Color surface; // card/elevated surface
-  final Color ink; // primary text
-  final Color inkSoft; // secondary text/metadata
-  final Color shadow; // hard pixel-shadow color (navy in light, purple in dark)
-  final Color border; // default hairline/box border
+  final Color bg;
+  final Color surface;
+  final Color ink;
+  final Color inkSoft;
+  final Color shadow;
+  final Color border;
   final bool isDark;
 
   const RambleScheme({
@@ -159,12 +133,12 @@ class RambleScheme {
   });
 
   static const light = RambleScheme(
-    bg: RambleColors.creamBase,
-    surface: RambleColors.warmWhite,
-    ink: RambleColors.deepNavy,
-    inkSoft: RambleColors.gameboyGray,
-    shadow: RambleColors.deepNavy,
-    border: RambleColors.deepNavy,
+    bg: RambleColors.paper,
+    surface: RambleColors.white,
+    ink: RambleColors.ink,
+    inkSoft: RambleColors.inkMute,
+    shadow: RambleColors.line, // hard shadows become faint hairlines
+    border: RambleColors.line,
     isDark: false,
   );
 
@@ -173,8 +147,8 @@ class RambleScheme {
     surface: RambleColors.darkSurface,
     ink: RambleColors.darkText,
     inkSoft: RambleColors.pixelLavender,
-    shadow: RambleColors.mikoPurple,
-    border: RambleColors.mikoPurple,
+    shadow: Color(0xFF000000),
+    border: Color(0xFF2C2C2A),
     isDark: true,
   );
 }
@@ -187,13 +161,13 @@ class RambleTheme {
       brightness: brightness,
       scaffoldBackgroundColor: s.bg,
       colorScheme: ColorScheme.fromSeed(
-        seedColor: RambleColors.mikoPurple,
+        seedColor: RambleColors.ink,
         brightness: brightness,
-        primary: RambleColors.mikoPurple,
-        secondary: RambleColors.pixelPink,
+        primary: s.ink,
+        secondary: s.inkSoft,
         surface: s.surface,
       ),
-      textTheme: GoogleFonts.dmSansTextTheme(
+      textTheme: GoogleFonts.newsreaderTextTheme(
         ThemeData(brightness: brightness).textTheme,
       ).apply(bodyColor: s.ink, displayColor: s.ink),
       useMaterial3: true,
@@ -203,8 +177,7 @@ class RambleTheme {
 
 /// `context.ramble` → current [RambleScheme] based on platform brightness.
 extension RambleThemeX on BuildContext {
-  RambleScheme get ramble =>
-      Theme.of(this).brightness == Brightness.dark
-          ? RambleScheme.dark
-          : RambleScheme.light;
+  RambleScheme get ramble => Theme.of(this).brightness == Brightness.dark
+      ? RambleScheme.dark
+      : RambleScheme.light;
 }
