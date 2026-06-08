@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import '../theme/ramble_theme.dart';
 import '../services/settings_service.dart';
 import '../widgets/ramble_button.dart';
-import '../widgets/miko/miko_character.dart';
-import '../widgets/miko/miko_painter.dart';
 import 'home_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -52,16 +50,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 SizedBox(height: RambleSpace.s7),
-                // Miko character
-                MikoCharacter(
-                  size: 140,
-                  state: MikoState.idle,
-                ),
-                SizedBox(height: RambleSpace.s6),
-                // "Ramble" wordmark
-                Text(
-                  'Ramble',
-                  style: RambleType.wordmark(scheme.ink),
+                // Miko + wordmark hero (the real logo art)
+                Image.asset(
+                  'assets/miko_logo.png',
+                  width: 280,
+                  filterQuality: FilterQuality.none,
                 ),
                 SizedBox(height: RambleSpace.s3),
                 // Tagline
