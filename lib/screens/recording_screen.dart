@@ -12,7 +12,6 @@ import '../widgets/miko/miko_waveform.dart';
 import '../widgets/miko/miko_character.dart';
 import '../widgets/miko/miko_painter.dart';
 import '../widgets/ramble_button.dart';
-import '../widgets/ramble_fx.dart';
 import 'note_detail_screen.dart';
 
 enum _RecordingState { recording, transcribing, error }
@@ -134,17 +133,14 @@ class _RecordingScreenState extends State<RecordingScreen> {
   Widget _buildRecording(BuildContext context, RambleScheme scheme) {
     return Scaffold(
       backgroundColor: scheme.bg,
-      body: RambleBackground(
-        glow: RambleColors.pixelPink,
-        child: SafeArea(
+      body: SafeArea(
         child: Column(
           children: [
             Padding(
               padding: const EdgeInsets.all(RambleSpace.s4),
-              child: RambleGradientText(
+              child: Text(
                 _formatTime(_elapsed),
-                style: RambleType.screenTitle(Colors.white).copyWith(fontSize: 28),
-                gradient: RambleGradients.ember,
+                style: RambleType.screenTitle(scheme.ink).copyWith(fontSize: 28),
               ),
             ),
             Expanded(
@@ -153,11 +149,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
                   vertical: RambleSpace.s5,
                   horizontal: RambleSpace.s4,
                 ),
-                child: GlowAura(
-                  color: RambleColors.pixelPink,
-                  intensity: _level,
-                  child: MikoWaveform(level: _level, height: 160, looping: false),
-                ),
+                child: MikoWaveform(level: _level, height: 160, looping: false),
               ),
             ),
             Padding(
@@ -196,7 +188,6 @@ class _RecordingScreenState extends State<RecordingScreen> {
             ),
           ],
         ),
-      ),
       ),
     );
   }

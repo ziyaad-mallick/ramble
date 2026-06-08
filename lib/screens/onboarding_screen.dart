@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../theme/ramble_theme.dart';
 import '../services/settings_service.dart';
 import '../widgets/ramble_button.dart';
-import '../widgets/ramble_fx.dart';
 import '../widgets/miko/miko_character.dart';
 import '../widgets/miko/miko_painter.dart';
 import 'home_screen.dart';
@@ -46,8 +45,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
     return Scaffold(
       backgroundColor: scheme.bg,
-      body: RambleBackground(
-        child: SafeArea(
+      body: SafeArea(
         child: SingleChildScrollView(
           child: Center(
             child: Column(
@@ -60,11 +58,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   state: MikoState.idle,
                 ),
                 SizedBox(height: RambleSpace.s6),
-                // "Ramble" wordmark — gradient hero
-                RambleGradientText(
+                // "Ramble" wordmark
+                Text(
                   'Ramble',
-                  style: RambleType.wordmark(Colors.white),
-                  gradient: RambleGradients.miko,
+                  style: RambleType.wordmark(scheme.ink),
                 ),
                 SizedBox(height: RambleSpace.s3),
                 // Tagline
@@ -158,7 +155,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ),
           ),
         ),
-      ),
       ),
     );
   }
